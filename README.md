@@ -31,7 +31,8 @@ STEP-3: Arrange the keyword without duplicates in a 5*5 matrix in the row order 
 STEP-4: Group the plain text in pairs and match the corresponding corner letters by forming a rectangular grid.
 STEP-5: Display the obtained cipher text.
 
-
+Name : Angelin Gracy.R
+Reg No: 212225240009
 
 
 Program:
@@ -40,82 +41,174 @@ Program:
 #include <string.h>
 #include <ctype.h>
 
-#define SIZE 2  // Size of the key matrix (2x2 for simplicity)
+char key[5][5];
 
-int keyMatrix[SIZE][SIZE];
+void generateKey(char keyword[])
+{
+    int used[26] = {0};
+    int i, j, k = 0;
+    char ch;
 
-void toUpperCase(char *str) {
-    for (int i = 0; str[i]; i++) {
-        str[i] = toupper(str[i]);
-    }
-}
+    used['J' - 'A'] = 1;  // Combine I and J
 
-void removeSpaces(char *str) {
-    int count = 0;
-    for (int i = 0; str[i]; i++) {
-        if (str[i] != ' ') {
-            str[count++] = str[i];
-        }
-    }
-    str[count] = '\0';
-}
+    // Fill matrix using keyword
+    for (i = 0; keyword[i] != '\0'; i++)
+    {
+        ch = toupper((unsigned char)keyword[i]);
 
-void getKeyMatrix(char *key) {
-    int k = 0;
-    toUpperCase(key);
-    removeSpaces(key);
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            keyMatrix[i][j] = key[k++] - 'A';
-        }
-    }
-}
+        if (ch >= 'A' && ch <= 'Z')
+        {
+            if (ch == 'J')
+                ch = 'I';
 
-void encrypt(char *text, char *cipher) {
-    toUpperCase(text);
-    removeSpaces(text);
-    int len = strlen(text);
-    if (len % SIZE != 0) {
-        text[len++] = 'X';  // Padding if needed
-        text[len] = '\0';
-    }
-    
-    for (int i = 0; i < len; i += SIZE) {
-        for (int row = 0; row < SIZE; row++) {
-            int sum = 0;
-            for (int col = 0; col < SIZE; col++) {
-                sum += keyMatrix[row][col] * (text[i + col] - 'A');
+            if (!used[ch - 'A'])
+            {
+                key[k / 5][k % 5] = ch;
+                used[ch - 'A'] = 1;
+                k++;
             }
-            cipher[i + row] = (sum % 26) + 'A';
         }
     }
-    cipher[len] = '\0';
+
+    // Fill remaining letters alphabetically
+    for (ch = 'A'; ch <= 'Z'; ch++)
+    {
+        if (!used[ch - 'A'])
+        {
+            key[k / 5][k % 5] = ch;
+            k++;
+        }
+    }
 }
 
-void printKeyMatrix() {
-    printf("KEY MATRIX:\n");
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            printf("%d ", keyMatrix[i][j]);
-        }
+void displayKey()
+{
+    int i, j;
+
+    printf("\nKey Matrix:\n");
+
+    for (i = 0; i < 5; i++)
+    {
+        for (j = 0; j < 5; j++)
+            printf("%c ", key[i][j]);
+
         printf("\n");
     }
 }
 
-int main() {
-    char key[SIZE * SIZE + 1], text[100], cipher[100];
-    
-    printf("ENTER KEY (4 letters): ");
-    scanf("%s", key);
-    getKeyMatrix(key);
-    printKeyMatrix();
-    
-    printf("ENTER PLAINTEXT: ");
-    scanf("%s", text);
-    
-    encrypt(text, cipher);
-    printf("CIPHERTEXT: %s\n", cipher);
-    
+void findPosition(char ch, int *row, int *col)
+{
+    int i, j;
+
+    if (ch == 'J')
+        ch = 'I';
+
+    for (i = 0; i < 5; i++)
+    {
+        for (j = 0; j < 5; j++)
+        {
+            if (key[i][j] == ch)
+            {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+void encryptPair(char a, char b, char *x, char *y)
+{
+    int r1, c1, r2, c2;
+
+    findPosition(a, &r1, &c1);
+    findPosition(b, &r2, &c2);
+
+    if (r1 == r2)
+    {
+        // Same row: move right
+        *x = key[r1][(c1 + 1) % 5];
+        *y = key[r2][(c2 + 1) % 5];
+    }
+    else if (c1 == c2)
+    {
+        // Same column: move down
+        *x = key[(r1 + 1) % 5][c1];
+        *y = key[(r2 + 1) % 5][c2];
+    }
+    else
+    {
+        // Rectangle rule
+        *x = key[r1][c2];
+        *y = key[r2][c1];
+    }
+}
+
+int main()
+{
+    char keyword[200], plaintext[500];
+    char text[1000], cipher[1000];
+    int i, j = 0, n = 0;
+
+    printf("Enter keyword: ");
+    fgets(keyword, sizeof(keyword), stdin);
+
+    printf("Enter plaintext: ");
+    fgets(plaintext, sizeof(plaintext), stdin);
+
+    generateKey(keyword);
+    displayKey();
+
+    // Remove spaces and non-alphabetic characters
+    // Convert to uppercase and replace J with I
+    for (i = 0; plaintext[i] != '\0'; i++)
+    {
+        char ch = toupper((unsigned char)plaintext[i]);
+
+        if (ch >= 'A' && ch <= 'Z')
+        {
+            if (ch == 'J')
+                ch = 'I';
+
+            text[n++] = ch;
+        }
+    }
+
+    text[n] = '\0';
+
+    // Form digraphs, inserting X between repeated letters
+    i = 0;
+
+    while (i < n)
+    {
+        char a = text[i];
+        char b;
+
+        if (i + 1 >= n)
+        {
+            b = 'X';
+            i++;
+        }
+        else if (text[i] == text[i + 1])
+        {
+            b = 'X';
+            i++;
+        }
+        else
+        {
+            b = text[i + 1];
+            i += 2;
+        }
+
+        encryptPair(a, b, &cipher[j], &cipher[j + 1]);
+        j += 2;
+    }
+
+    cipher[j] = '\0';
+
+    printf("\nPrepared Plaintext: %s\n", text);
+    printf("Ciphertext: %s\n", cipher);
+
     return 0;
 }
 ```
@@ -123,8 +216,10 @@ int main() {
 
 
 
-
-
 Output:
-<img width="350" height="221" alt="image" src="https://github.com/user-attachments/assets/4faf7653-5543-4f94-879c-12fb8853af81" />
+<img width="316" height="417" alt="Screenshot 2026-10-29 122912" src="https://github.com/user-attachments/assets/e5254db9-7010-4976-9868-06e9b0fe48c7" />
+
+
+RESULT:
+The program for playfair cipher method is executed successfully
 
